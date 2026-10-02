@@ -1,81 +1,96 @@
 import random
 
-DIRS = ((1, 0), (-1, 0), (0, 1), (0, -1))
+DIRECTIONS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 
 
-def neighbors(r, c, D):
-    for dr, dc in DIRS:
-        nr, nc = r + dr, c + dc
-        if 0 <= nr < D and 0 <= nc < D:
-            yield nr, nc
+def neighbors(row, column, size):
+    for row_offset, column_offset in DIRECTIONS:
+        neighbor_row = row + row_offset
+        neighbor_column = column + column_offset
+        if 0 <= neighbor_row < size and 0 <= neighbor_column < size:
+            yield neighbor_row, neighbor_column
 
 
-def generate_ship(D, seed=None):
-    """Return a D x D grid of bools (True = open), built per the spec.
+def generate_ship(size, seed=None):
+    """Return a square Boolean grid where True means an open cell."""
+    randomizer = random.Random(seed)
+    open_cells = [[False] * size for _ in range(size)]
+    open_neighbor_count = [[0] * size for _ in range(size)]
+    frontier = []
+    frontier_index = {}
 
-    Phase 1 grows a tree: repeatedly open a random blocked cell with exactly
-    one open neighbor. We keep a running open-neighbor count per cell and a
-    'frontier' list of blocked cells whose count is exactly 1, so each step
-    is O(1) instead of rescanning the grid.
-    Phase 2 removes dead ends until at least half are gone.
-    """
-    rng = random.Random(seed)
-    opn = [[False] * D for _ in range(D)]
-    cnt = [[0] * D for _ in range(D)]  # open neighbors of each cell
-    frontier, pos = [], {}              # list + index map = O(1) random removal
-
-    def f_add(cell):
-        pos[cell] = len(frontier)
+    def add_to_frontier(cell):
+        frontier_index[cell] = len(frontier)
         frontier.append(cell)
 
-    def f_remove(cell):
-        i = pos.pop(cell)
-        last = frontier.pop()
-        if i < len(frontier):
-            frontier[i] = last
-            pos[last] = i
+    def remove_from_frontier(cell):
+        index = frontier_index.pop(cell)
+        last_cell = frontier.pop()
+        if index < len(frontier):
+            frontier[index] = last_cell
+            frontier_index[last_cell] = index
 
-    def open_cell(r, c):
-        opn[r][c] = True
-        if (r, c) in pos:
-            f_remove((r, c))
-        for nr, nc in neighbors(r, c, D):
-            cnt[nr][nc] += 1
-            if not opn[nr][nc]:
-                if cnt[nr][nc] == 1:
-                    f_add((nr, nc))
-                elif cnt[nr][nc] == 2 and (nr, nc) in pos:
-                    f_remove((nr, nc))
+    def open_cell(row, column):
+        open_cells[row][column] = True
+        if (row, column) in frontier_index:
+            remove_from_frontier((row, column))
 
-    # Phase 1: grow the maze from a random interior cell
-    open_cell(rng.randrange(1, D - 1), rng.randrange(1, D - 1))
+        for neighbor_row, neighbor_column in neighbors(row, column, size):
+            open_neighbor_count[neighbor_row][neighbor_column] += 1
+            if not open_cells[neighbor_row][neighbor_column]:
+                neighbor = (neighbor_row, neighbor_column)
+                if open_neighbor_count[neighbor_row][neighbor_column] == 1:
+                    add_to_frontier(neighbor)
+                elif (
+                    open_neighbor_count[neighbor_row][neighbor_column] == 2
+                    and neighbor in frontier_index
+                ):
+                    remove_from_frontier(neighbor)
+
+    # Grow a connected maze.
+    open_cell(randomizer.randrange(1, size - 1), randomizer.randrange(1, size - 1))
     while frontier:
-        open_cell(*rng.choice(frontier))
+        open_cell(*randomizer.choice(frontier))
 
-    # Phase 2: open a closed neighbor of random dead ends
-    def is_dead(r, c):
-        return opn[r][c] and cnt[r][c] == 1
+    def is_dead_end(row, column):
+        return open_cells[row][column] and open_neighbor_count[row][column] == 1
 
-    dead = [(r, c) for r in range(D) for c in range(D) if is_dead(r, c)]
-    initial = n_dead = len(dead)
-    rng.shuffle(dead)
-    for r, c in dead:
-        if n_dead <= initial / 2:
+    # Open walls near dead ends until at least half are removed.
+    dead_ends = [
+        (row, column)
+        for row in range(size)
+        for column in range(size)
+        if is_dead_end(row, column)
+    ]
+    initial_dead_end_count = dead_end_count = len(dead_ends)
+    randomizer.shuffle(dead_ends)
+
+    for row, column in dead_ends:
+        if dead_end_count <= initial_dead_end_count / 2:
             break
-        if not is_dead(r, c):  # an earlier opening already fixed it
+        if not is_dead_end(row, column):
             continue
-        a, b = rng.choice([(a, b) for a, b in neighbors(r, c, D) if not opn[a][b]])
-        affected = [(a, b)] + list(neighbors(a, b, D))
-        before = sum(is_dead(*x) for x in affected)
-        open_cell(a, b)
-        n_dead += sum(is_dead(*x) for x in affected) - before
+        closed_neighbors = [
+            cell
+            for cell in neighbors(row, column, size)
+            if not open_cells[cell[0]][cell[1]]
+        ]
+        wall_row, wall_column = randomizer.choice(closed_neighbors)
+        affected_cells = [(wall_row, wall_column)] + list(
+            neighbors(wall_row, wall_column, size)
+        )
+        dead_ends_before = sum(is_dead_end(*cell) for cell in affected_cells)
+        open_cell(wall_row, wall_column)
+        dead_end_count += (
+            sum(is_dead_end(*cell) for cell in affected_cells) - dead_ends_before
+        )
 
-    return opn
+    return open_cells
 
 
-def show(opn):
-    for row in opn:
-        print("".join("." if x else "#" for x in row))
+def show(grid):
+    for row in grid:
+        print("".join("." if cell else "#" for cell in row))
 
 
 if __name__ == "__main__":
