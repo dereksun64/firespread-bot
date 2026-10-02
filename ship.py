@@ -136,10 +136,10 @@ def generate_ship(size, seed=None):
 def show(grid):
     """Print open cells as dots and blocked cells as number signs."""
     for row in grid:
-        print("".join("." if cell else "#" for cell in row))
+        print("".join("·" if cell else "█" for cell in row))
 
 
 if __name__ == "__main__":
     # Generate and print one reproducible example when this file is run directly.
-    ship = generate_ship(25, seed=1)
+    ship = generate_ship(20, seed=1)
     show(ship)
