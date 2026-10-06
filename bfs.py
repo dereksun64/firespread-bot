@@ -41,16 +41,39 @@ if __name__ == "__main__":
     import random
     from ship import generate_ship
 
-    D = 40
-    ship = generate_ship(D, seed=7)
-    rng = random.Random(7)
+    D = 20          # change this to try bigger ships
+    SEED = 7
+
+    ship = generate_ship(D, seed=SEED)
+    rng = random.Random(SEED)
     cells = [(r, c) for r in range(D) for c in range(D) if ship[r][c]]
     bot, button, fire = rng.sample(cells, 3)
 
+    # --- ship info ---
+    print(f"Ship: {D} x {D} grid, {len(cells)} open cells, {D * D - len(cells)} blocked")
+    print(f"Bot start    (row, col): {bot}")
+    print(f"Button       (row, col): {button}")
+    print(f"Fire start   (row, col): {fire}")
+    print()
+
+    # --- map: # = wall, . = open, B = bot, X = button, F = fire ---
+    if D <= 20:
+        marks = {bot: "B", button: "X", fire: "F"}
+        for r in range(D):
+            print("".join(marks.get((r, c), "." if ship[r][c] else "#") for c in range(D)))
+        print()
+
+    # --- paths ---
     p_free = bfs(ship, bot, button)
     p_avoid = bfs(ship, bot, button, forbidden={fire})
     print("no forbidden :", len(p_free) - 1, "steps")
-    print("avoid fire   :", None if p_avoid is None else len(p_avoid) - 1, "steps")
+    print("   path      :", p_free)
+    if p_avoid is None:
+        print("avoid fire   : no path (the fire cell blocks the only route)")
+    else:
+        print("avoid fire   :", len(p_avoid) - 1, "steps")
+        print("   path      :", p_avoid)
+
     assert p_free[0] == bot and p_free[-1] == button
     assert all(abs(a[0] - b[0]) + abs(a[1] - b[1]) == 1 for a, b in zip(p_free, p_free[1:]))
     assert p_avoid is None or fire not in p_avoid
