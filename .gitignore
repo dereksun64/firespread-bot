@@ -1,4 +1,3 @@
-# Append common Python cache artifacts to .gitignore
-echo "__pycache__/" >> .gitignore
-echo "*.py[cod]" >> .gitignore
-echo "*$py.class" >> .gitignore
+__pycache__/
+*.py[cod]
+*$py.class
