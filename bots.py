@@ -9,6 +9,8 @@ Every bot has the same signature and answers one question: "where do I step next
     button  (row, col) of the button
     fire    set of (row, col) cells currently burning
     q       flammability (only Bot 4 uses it)
+
+The button can never catch fire (confirmed by the TA).
     state   a dict the CALLER creates once per trial per bot ({}) and passes
             back in every step. Bots use it as scratch memory (Bot 1 keeps its
             plan there, Bot 4 caches the grid as a NumPy array).
@@ -29,11 +31,15 @@ def _first_step(path, here):
     return path[1] if path is not None and len(path) > 1 else here
 
 
-def _fire_plus_neighbors(fire, size):
-    """The burning cells together with every cell adjacent to one."""
+def _fire_plus_neighbors(fire, size, button):
+    """The burning cells together with every cell adjacent to one.
+
+    The button is left out: it can never burn, and entering it ends the task.
+    """
     danger = set(fire)
     for r, c in fire:
         danger.update(neighbors(r, c, size))
+    danger.discard(button)
     return danger
 
 
@@ -64,7 +70,7 @@ def bot2(grid, bot, button, fire, q, state):
 # leaves no route, fall back to avoiding only the burning cells.
 # --------------------------------------------------------------------------
 def bot3(grid, bot, button, fire, q, state):
-    path = bfs(grid, bot, button, _fire_plus_neighbors(fire, len(grid)))
+    path = bfs(grid, bot, button, _fire_plus_neighbors(fire, len(grid), button))
     if path is None:
         path = bfs(grid, bot, button, fire)
     return _first_step(path, bot)
@@ -103,7 +109,7 @@ def _step_cost(P, open_mask):
     return cost
 
 
-def bot4(grid, bot, button, fire, q, state, slack=20, button_immune=False):
+def bot4(grid, bot, button, fire, q, state, slack=20):
     size = len(grid)
     if "open" not in state:  # convert once per trial, not once per step
         state["open"] = np.array(grid, dtype=bool)
@@ -119,8 +125,7 @@ def bot4(grid, bot, button, fire, q, state, slack=20, button_immune=False):
     horizon = len(safe_path) - 1 + slack
 
     ignitable = open_mask.astype(float)
-    if button_immune:
-        ignitable[button] = 0.0
+    ignitable[button] = 0.0  # the button can never catch fire
     P = _forecast(open_mask, fire, q, horizon, ignitable)
 
     # costs[k] holds the best total cost of being on each cell after k+1 moves.
@@ -128,12 +133,7 @@ def bot4(grid, bot, button, fire, q, state, slack=20, button_immune=False):
     cost[bot] = 0.0
     costs = []
     for t in range(1, horizon + 1):
-        step = _step_cost(P[t], open_mask)
-        # Entering the button is checked BEFORE the fire advances this turn,
-        # so its risk comes from the previous forecast layer.
-        p_button = min(P[t - 1][button], _NEAR_ONE)
-        step[button] = np.inf if P[t - 1][button] >= _NEAR_ONE else -np.log1p(-p_button)
-
+        step = _step_cost(P[t], open_mask)  # the button's cost is 0: it never burns
         padded = np.pad(cost, 1, constant_values=np.inf)
         best_prev = np.minimum(
             np.minimum(padded[:-2, 1:-1], padded[2:, 1:-1]),
@@ -159,33 +159,19 @@ def bot4(grid, bot, button, fire, q, state, slack=20, button_immune=False):
 
 # --------------------------------------------------------------------------
 # Demo only: one seeded scenario, all four bots facing the same fire.
-# Swap `_demo_spread` for your partner's spread_fire once it is wired in.
 # --------------------------------------------------------------------------
-def _demo_spread(grid, fire, q, rng):
-    size = len(grid)
-    counts = {}
-    for r, c in fire:
-        for n in neighbors(r, c, size):
-            if grid[n[0]][n[1]] and n not in fire:
-                counts[n] = counts.get(n, 0) + 1
-    new_fire = set(fire)
-    for cell, k in sorted(counts.items()):
-        if rng.random() < 1 - (1 - q) ** k:
-            new_fire.add(cell)
-    return new_fire
-
-
 def _demo_trial(bot_fn, grid, bot, button, fire0, q, seed, max_steps=5000, **kw):
     import random
+    from fire import spread_fire
     rng = random.Random(seed)
     fire, state = set(fire0), {}
     for t in range(1, max_steps + 1):
         bot = bot_fn(grid, bot, button, fire, q, state, **kw)
-        if bot == button:
+        if bot == button:        # the button never burns, so this check comes first
             return "success", t
-        if bot in fire:
+        if bot in fire:          # stepped into a burning cell
             return "burned", t
-        fire = _demo_spread(grid, fire, q, rng)
+        fire = spread_fire(grid, fire, q, rng, button=button)
         if bot in fire:
             return "burned", t
     return "timeout", max_steps
@@ -195,10 +181,7 @@ if __name__ == "__main__":
     import random
     from ship import generate_ship
 
-    D = 4
-    Q = 0.3
-    SEED = 4
-
+    D, Q, SEED = 10, 0.3, 5
     ship = generate_ship(D, seed=SEED)
     rng = random.Random(SEED)
     open_cells = [(r, c) for r in range(D) for c in range(D) if ship[r][c]]
