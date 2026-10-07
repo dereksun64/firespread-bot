@@ -158,42 +158,12 @@ def bot4(grid, bot, button, fire, q, state, slack=20, button_immune=False):
 
 
 # --------------------------------------------------------------------------
-# Demo only: one seeded scenario, all four bots facing the same fire.
-# Swap `_demo_spread` for your partner's spread_fire once it is wired in.
+# Demo only: one seeded scenario, using the shared trial simulator.
 # --------------------------------------------------------------------------
-def _demo_spread(grid, fire, q, rng):
-    size = len(grid)
-    counts = {}
-    for r, c in fire:
-        for n in neighbors(r, c, size):
-            if grid[n[0]][n[1]] and n not in fire:
-                counts[n] = counts.get(n, 0) + 1
-    new_fire = set(fire)
-    for cell, k in sorted(counts.items()):
-        if rng.random() < 1 - (1 - q) ** k:
-            new_fire.add(cell)
-    return new_fire
-
-
-def _demo_trial(bot_fn, grid, bot, button, fire0, q, seed, max_steps=5000, **kw):
-    import random
-    rng = random.Random(seed)
-    fire, state = set(fire0), {}
-    for t in range(1, max_steps + 1):
-        bot = bot_fn(grid, bot, button, fire, q, state, **kw)
-        if bot == button:
-            return "success", t
-        if bot in fire:
-            return "burned", t
-        fire = _demo_spread(grid, fire, q, rng)
-        if bot in fire:
-            return "burned", t
-    return "timeout", max_steps
-
-
 if __name__ == "__main__":
     import random
     from ship import generate_ship
+    from simulate import run_trial
 
     D = 4
     Q = 0.3
@@ -214,4 +184,4 @@ if __name__ == "__main__":
         print()
 
     for name, fn in [("bot1", bot1), ("bot2", bot2), ("bot3", bot3), ("bot4", bot4)]:
-        print(name, _demo_trial(fn, ship, start, btn, {fire_start}, Q, seed=SEED))
+        print(name, run_trial(fn, ship, start, btn, {fire_start}, Q, seed=SEED))
