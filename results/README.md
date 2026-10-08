@@ -1,5 +1,10 @@
 ## Exploratory 60x60 sweep
 
+> LEGACY RESULTS: These artifacts were generated with a burnable button.
+> The current code uses the TA-clarified fireproof-button rule. Retained for
+> historical reference only; regenerate experiments before using them in
+> the submission. Replay rejects legacy CSVs instead of mixing rule sets.
+
 `exploratory_60.csv` contains 4,400 trial outcomes; `exploratory_60.png`
 plots the success rates. Each bot ran on 100 ships at each q in
 0.0, 0.1, ..., 1.0. No runs timed out (5,000-turn cutoff).

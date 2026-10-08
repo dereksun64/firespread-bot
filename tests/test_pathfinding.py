@@ -20,12 +20,12 @@ def trace_trial(fn, grid, start, button, fire, q, seed):
     return outcome, path
 
 
-def scalar_forecast(grid, fire, q, horizon):
+def scalar_forecast(grid, fire, q, horizon, button=None):
     cells = [(r, c) for r, row in enumerate(grid) for c, opened in enumerate(row) if opened]
     layers = [{cell: float(cell in fire) for cell in cells}]
     for _ in range(horizon):
         old = layers[-1]
-        layers.append({cell: old[cell] + (1 - old[cell]) *
+        layers.append({cell: 0.0 if cell == button else old[cell] + (1 - old[cell]) *
                        (1 - math.prod(1 - q * old.get(n, 0)
                                       for n in neighbors(*cell, len(grid))))
                        for cell in cells})
@@ -34,7 +34,7 @@ def scalar_forecast(grid, fire, q, horizon):
 
 def risk_by_first_move(grid, start, button, fire, q, horizon):
     """Scalar forward search, terminating paths on arrival at the button."""
-    layers = scalar_forecast(grid, fire, q, horizon)
+    layers = scalar_forecast(grid, fire, q, horizon, button)
     scores = {}
     for first in neighbors(*start, len(grid)):
         if first not in layers[0] or first in fire:

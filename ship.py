@@ -1,8 +1,7 @@
-import random  # Create repeatable random choices when a seed is supplied.
+import random
 
 # Row/column offsets for the four non-diagonal neighboring cells.
 DIRECTIONS = ((1, 0), (-1, 0), (0, 1), (0, -1))
-
 
 def neighbors(row, column, size):
     """Yield every in-bounds up, down, left, and right neighbor."""
@@ -14,7 +13,6 @@ def neighbors(row, column, size):
         # Ignore neighbors outside the square grid.
         if 0 <= neighbor_row < size and 0 <= neighbor_column < size:
             yield neighbor_row, neighbor_column
-
 
 def generate_ship(size, seed=None):
     """Return a square Boolean grid where True means an open cell."""

@@ -11,6 +11,13 @@ from simulate import run_experiments, run_trial, save_results, success_rates
 
 
 class SimulationTests(unittest.TestCase):
+    def test_trial_passes_fireproof_button_to_spread(self):
+        grid = [[True] * 3 for _ in range(3)]
+        stay = lambda grid, bot, button, fire, q, state: bot
+        history = []
+        run_trial(stay, grid, (2, 0), (1, 2), {(1, 1)}, 1, 0, 1, history)
+        self.assertNotIn((1, 2), history[0]["fire_after"])
+
     def test_history_records_final_spread_without_changing_result(self):
         grid = [[True] * 3 for _ in range(3)]
         stay = lambda grid, bot, button, fire, q, state: bot

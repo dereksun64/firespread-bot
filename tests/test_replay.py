@@ -9,7 +9,7 @@ class HindsightTests(unittest.TestCase):
         self.assertEqual(hindsight_path(grid, (1, 0), (1, 1), (1, 2), 1, 0),
                          [(1, 0), (1, 1)])
 
-    def test_early_button_ignition_makes_escape_impossible(self):
+    def test_fire_can_cut_off_a_fireproof_button(self):
         grid = [[True] * 3 for _ in range(3)]
         self.assertIsNone(hindsight_path(grid, (2, 0), (0, 2), (0, 1), 1, 0))
 

@@ -1,5 +1,10 @@
 ## Setup
 
+The button is fireproof, following the TA clarification recorded in commit
+03fabb5. Existing artifacts in `results/` and `analysis.md` used the earlier
+burnable-button model and are historical, not submission-ready. Regenerate
+the experiments and revise the writeup before using their claims.
+
 Tested with Python 3.9.6. From the repository root:
 
 ```sh
@@ -13,6 +18,7 @@ The dependency versions match the completed experiments. Review `analysis.md`
 for the writeup draft; graphs, raw results, and experiment methods are in `results/`.
 
 ## TODO
+- [ ] regenerate results and revise analysis for the fireproof-button rules
 - [x] shared `bfs.py` helper used by all bots
 
 - steps

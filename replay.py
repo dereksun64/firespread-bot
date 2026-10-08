@@ -32,7 +32,7 @@ def hindsight_path(grid, start, button, fire_start, q, seed, max_steps=5000):
             for previous in reversed(parents):
                 path.append(previous[path[-1]])
             return path[::-1]
-        fire = spread_fire(grid, fire, q, randomizer)
+        fire = spread_fire(grid, fire, q, randomizer, button=button)
         if button in fire:
             return None  # The button stays burning; no later success is possible.
         surviving = {cell: parent for cell, parent in candidates.items() if cell not in fire}
@@ -49,6 +49,9 @@ def replay(path, trial, q):
                 if int(row["trial"]) == trial and float(row["q"]) == q]
     if len(rows) != 4:
         raise ValueError("Expected one saved row for each of the four bots")
+    if any(row.get("rules") != "fireproof_button_v1" for row in rows):
+        raise ValueError("This CSV uses legacy burnable-button rules. Regenerate results "
+                         "with the fireproof-button simulator before replaying.")
     bots = {fn.__name__: fn for fn in (bot1, bot2, bot3, bot4)}
     scenario = rows[0]
     grid = generate_ship(int(scenario["size"]), seed=int(scenario["ship_seed"]))
@@ -58,7 +61,8 @@ def replay(path, trial, q):
     for row in rows:
         history = []
         outcome, steps = run_trial(bots[row["bot"]], grid, start, button, {fire_start},
-                                   q, int(row["fire_seed"]), history=history)
+                                   q, int(row["fire_seed"]),
+                                   max_steps=int(row["max_steps"]), history=history)
         if (outcome, steps) != (row["outcome"], int(row["steps"])):
             raise ValueError(f"Replay differs from saved result for {row['bot']}")
         for turn in history:

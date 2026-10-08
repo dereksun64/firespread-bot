@@ -1,5 +1,11 @@
 # Project 1: This Ship Is on Fire
 
+> HISTORICAL DRAFT: The experiments below used a burnable button.
+> Remote commit 03fabb5 records the TA clarification that the button is
+> fireproof. The current code follows that clarification. All results,
+> graphs, statistical comparisons, and fire-based diagnoses below require
+> regeneration and revision before submission. This is not the final writeup.
+
 Analysis draft based on the implemented bots and the completed exploratory
 experiment. The results support preliminary comparisons; further trials are
 needed before claiming a reliable performance ranking.

@@ -1,5 +1,9 @@
 # Focused 60x60 experiment
 
+> LEGACY RESULTS: This experiment used a burnable button. The current code
+> uses the fireproof-button rule clarified in remote commit 03fabb5.
+> These statistics and graphs must be regenerated before submission.
+
 Added 200 new paired scenarios at q=0.3, 0.4, 0.5. Combining these with
 the corresponding 100 scenarios from the exploratory sweep gives 300
 trials per bot/q and 3,600 rows in `focused_60.csv`. There were no timeouts.

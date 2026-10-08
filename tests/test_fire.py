@@ -16,6 +16,12 @@ def test_fire_spreads_to_all_open_neighbors_when_q_is_one():
 
 
 class FireTests(unittest.TestCase):
+    def test_button_is_fireproof_but_neighbors_burn(self):
+        grid = [[True] * 3 for _ in range(3)]
+        result = fire.spread_fire(grid, {(1, 1)}, 1, random.Random(1), button=(1, 2))
+        self.assertNotIn((1, 2), result)
+        self.assertIn((0, 1), result)
+
     def test_open_neighbors_ignite(self):
         test_fire_spreads_to_all_open_neighbors_when_q_is_one()
 

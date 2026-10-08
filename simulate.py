@@ -37,7 +37,7 @@ def run_trial(bot_fn, grid, start, button, fire0, q, seed, max_steps=5000, histo
             return "burned", step
         if position == button:
             return "success", step
-        fire = spread_fire(grid, fire, q, randomizer)
+        fire = spread_fire(grid, fire, q, randomizer, button=button)
         if history is not None:
             history[-1]["fire_after"] = sorted(fire)
         if position in fire:
@@ -74,7 +74,8 @@ def run_experiments(size, q_values, trials, seed=0, max_steps=5000):
                 results.append(dict(trial=trial, size=size, q=q, bot=bot_fn.__name__,
                                     outcome=outcome, steps=steps, ship_seed=ship_seed,
                                     fire_seed=fire_seed, start=start, button=button,
-                                    fire_start=fire_start))
+                                    fire_start=fire_start, rules="fireproof_button_v1",
+                                    max_steps=max_steps))
     return results
 
 
