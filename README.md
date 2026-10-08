@@ -1,9 +1,11 @@
 ## Setup
 
 The button is fireproof, following the TA clarification recorded in commit
-03fabb5. Existing artifacts in `results/` and `analysis.md` used the earlier
-burnable-button model and are historical, not submission-ready. Regenerate
-the experiments and revise the writeup before using their claims.
+03fabb5. Corrected evidence is in `results/fireproof/`; reproduce it with
+`python3 -u collect_evidence.py` and `python3 summarize_evidence.py`.
+Older artifacts directly in `results/` used the earlier burnable-button
+model and are historical. `analysis.md` uses the corrected evidence and
+current-rule diagnoses; LaTeX typesetting and PDF preparation remain.
 
 Tested with Python 3.9.6. From the repository root:
 
@@ -18,7 +20,9 @@ The dependency versions match the completed experiments. Review `analysis.md`
 for the writeup draft; graphs, raw results, and experiment methods are in `results/`.
 
 ## TODO
-- [ ] regenerate results and revise analysis for the fireproof-button rules
+- [x] regenerate evidence for fireproof-button rules, including 300 paired trials at q=0.3
+- [x] revise analysis for the fireproof-button rules and new evidence
+- [ ] typeset the revised writeup in LaTeX and inspect its compiled PDF
 - [x] shared `bfs.py` helper used by all bots
 
 - steps

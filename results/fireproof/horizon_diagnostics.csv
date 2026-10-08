@@ -1,0 +1,9 @@
+trial,q,slack,outcome,steps
+50,0.3,0,burned,61
+50,0.3,5,burned,61
+50,0.3,20,success,79
+50,0.3,40,success,79
+249,0.3,0,success,68
+249,0.3,5,success,68
+249,0.3,20,burned,81
+249,0.3,40,burned,81
