@@ -5,7 +5,8 @@ The button is fireproof, following the TA clarification recorded in commit
 `python3 -u collect_evidence.py` and `python3 summarize_evidence.py`.
 Older artifacts directly in `results/` used the earlier burnable-button
 model and are historical. `analysis.md` uses the corrected evidence and
-current-rule diagnoses; LaTeX typesetting and PDF preparation remain.
+current-rule diagnoses. `writeup.tex` is the self-contained LaTeX version;
+native compilation is verified, and PDF inspection/export remain.
 
 Tested with Python 3.9.6. From the repository root:
 
@@ -22,7 +23,8 @@ for the writeup draft; graphs, raw results, and experiment methods are in `resul
 ## TODO
 - [x] regenerate evidence for fireproof-button rules, including 300 paired trials at q=0.3
 - [x] revise analysis for the fireproof-button rules and new evidence
-- [ ] typeset the revised writeup in LaTeX and inspect its compiled PDF
+- [x] typeset the revised writeup in writeup.tex (native compilation verified)
+- [ ] inspect the compiled PDF layout and export the submission PDF
 - [x] shared `bfs.py` helper used by all bots
 
 - steps
