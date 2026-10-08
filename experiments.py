@@ -8,7 +8,7 @@ one, and graph how often each bot puts the fire out.
     python3 experiments.py --q-values 0.2 0.3 0.4 0.5 --trials 2000
     python3 experiments.py --plot-only           # redraw graphs from the CSVs
 
-Outputs (in --out, default results/):
+Outputs (in --out, default results/claude_d40/):
     trials.csv           one row per (q, trial, bot): outcome, steps, distances
     summary.csv          one row per (q, bot): success rate and 95% interval
     success_vs_q.png     the graph the assignment asks for
@@ -246,7 +246,7 @@ def main():
     parser.add_argument("--seed", type=int, default=0, help="first trial seed")
     parser.add_argument("--max-steps", type=int, default=5000)
     parser.add_argument("--workers", type=int, default=os.cpu_count())
-    parser.add_argument("--out", default="results")
+    parser.add_argument("--out", default="results/claude_d40")
     parser.add_argument("--plot-only", action="store_true",
                         help="skip the simulations; redraw from the CSVs in --out")
     args = parser.parse_args()
