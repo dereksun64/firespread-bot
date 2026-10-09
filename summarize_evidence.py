@@ -46,26 +46,41 @@ if __name__ == "__main__":
     focused, pairs = read_paired(output / "focused_q03.csv", 300)
     save_results(success_rates(sweep), output / "sweep_summary.csv")
     save_results(success_rates(focused), output / "focused_summary.csv")
-    randomizer = np.random.default_rng(42)
+    randomizer = np.random.default_rng(42)  # fixed seed so the intervals come out the same every run
     comparisons = []
     for bot in ("bot1", "bot2", "bot3"):
+        # compare Bot 4 to each other bot ship by ship. a "win" is a ship where
+        # Bot 4 succeeded and the other bot didn't, a "loss" is the reverse.
+        # (this is where the 19-1, 8-1, 4-0 numbers in the report come from)
         wins = losses = 0
         for _, group in sorted(pairs.items()):
             a = group["bot4"]["outcome"] == "success"
             b = group[bot]["outcome"] == "success"
             wins += a and not b
             losses += b and not a
-        # McNemar's exact test uses only discordant pairs; ties provide no
-        # evidence that one of the two bots outperformed the other
+        # McNemar's test: ships where both bots did the same thing tell us nothing
+        # about which is better, so we only look at the wins and losses. if the two
+        # bots were equally good, each disagreement would be a fair coin flip.
+        # p = chance of a split at least as lopsided as ours (counting both
+        # directions, hence the 2*). math.comb(n, k) / 2**n is the chance of
+        # exactly k heads in n flips.
         n = wins + losses
         p = min(1, 2 * sum(math.comb(n, k) for k in range(min(wins, losses) + 1)) / 2 ** n)
+        # bootstrap: pretend our 300 ships are the whole population, redraw 300 ships
+        # from them 20,000 times, and see how much (wins - losses) bounces around.
+        # each redraw lands in one of three buckets: Bot 4 won, Bot 4 lost, or tie.
+        # dividing by 3 turns a count out of 300 into percentage points, and the
+        # 2.5th / 97.5th percentiles are the middle 95% of those redraws
         draws = randomizer.multinomial(300, [wins / 300, losses / 300,
                                            1 - n / 300], size=20000)
         intervals = np.quantile((draws[:, 0] - draws[:, 1]) / 3, [0.025, 0.975])
         comparisons.append({"bot": bot, "wins": wins, "losses": losses,
                             "difference_pp": (wins - losses) / 3,
                             "bootstrap_ci_pp": intervals.tolist(), "exact_p": p})
-    # apply Holm's step-down correction to the three planned comparisons
+    # Holm correction: we ran 3 comparisons, and the more you run the more likely
+    # one looks good by luck. so go through the p-values from smallest to largest
+    # and multiply them by 3, 2, 1. the running max keeps a bigger p-value from
+    # ending up with a smaller adjusted value than a smaller one before it
     adjusted = 0
     for rank, row in enumerate(sorted(comparisons, key=lambda r: r["exact_p"])):
         adjusted = max(adjusted, min(1, (3 - rank) * row["exact_p"]))
