@@ -2,6 +2,7 @@ from collections import deque
 
 from ship import neighbors
 
+
 # this is just plain bfs, which is the "baseline" that the bots will use/build upon
 # given a DxD grid (booleans), the robot's start position, button/goal position, and a set of forbidden cells,
 # returns the path as a list of cells, or None if there's no solution
@@ -31,6 +32,7 @@ def bfs(grid, start, goal, forbidden=frozenset()):
 
 if __name__ == "__main__":
     import random
+
     from ship import generate_ship
 
     D = 20 #specifies the dimensions of the ship: DxD layout
@@ -55,7 +57,7 @@ if __name__ == "__main__":
             print("".join(marks.get((r, c), "." if ship[r][c] else "#") for c in range(D)))
         print()
 
-    # print paths paths 
+    # print paths paths
     p_free = bfs(ship, bot, button)
     p_avoid = bfs(ship, bot, button, forbidden={fire})
     print("no forbidden :", len(p_free) - 1, "steps")

@@ -1,9 +1,9 @@
-"""Controlled strategy differences and an independent scalar risk oracle."""
+# controlled strategy differences and an independent scalar risk oracle
 
 import math
 import unittest
 
-from bots import bot1, bot2, bot3, bot4, _forecast
+from bots import _forecast, bot1, bot2, bot3, bot4
 from ship import generate_ship, neighbors
 from simulate import run_trial
 
@@ -33,7 +33,7 @@ def scalar_forecast(grid, fire, q, horizon, button=None):
 
 
 def risk_by_first_move(grid, start, button, fire, q, horizon):
-    """Scalar forward search, terminating paths on arrival at the button."""
+    # scalar forward search, terminating paths on arrival at the button
     layers = scalar_forecast(grid, fire, q, horizon, button)
     scores = {}
     for first in neighbors(*start, len(grid)):

@@ -1,4 +1,4 @@
-"""Replay one paired CSV scenario and optionally save its complete history."""
+# replay one paired CSV scenario and optionally save its complete history
 
 import argparse
 import ast
@@ -14,14 +14,14 @@ from simulate import run_trial
 
 
 def hindsight_path(grid, start, button, fire_start, q, seed, max_steps=5000):
-    """Find an escape with advance knowledge of one realized fire sequence.
-
-    None means no escape within the cutoff, not necessarily forever.
-    This oracle is for diagnosis and cannot be used as an informed bot.
-    """
+    # find an escape with advance knowledge of one realized fire sequence
+    # None means no escape within the cutoff, not necessarily forever
+    # this oracle is for diagnosis and cannot be used as an informed bot
     fire, reachable = {fire_start}, {start}
     randomizer, parents = random.Random(seed), []
     for _ in range(max_steps):
+        # consider staying as well as moving: the diagnostic oracle is allowed
+        # to choose any legal action after seeing the realized future fire
         candidates = {}
         for here in sorted(reachable):
             for cell in (here, *neighbors(*here, len(grid))):
@@ -32,6 +32,7 @@ def hindsight_path(grid, start, button, fire_start, q, seed, max_steps=5000):
             for previous in reversed(parents):
                 path.append(previous[path[-1]])
             return path[::-1]
+        # advance the same seeded fire process used by the saved simulation
         fire = spread_fire(grid, fire, q, randomizer, button=button)
         if button in fire:
             return None  # The button stays burning; no later success is possible.
@@ -59,6 +60,8 @@ def replay(path, trial, q):
                                  for key in ("start", "button", "fire_start")]
     runs = {}
     for row in rows:
+        # re-run every bot from a fresh state, then reject any mismatch with
+        # the recorded outcome or any move that is not an adjacent open cell
         history = []
         outcome, steps = run_trial(bots[row["bot"]], grid, start, button, {fire_start},
                                    q, int(row["fire_seed"]),
@@ -69,14 +72,16 @@ def replay(path, trial, q):
             old, new = turn["previous"], turn["position"]
             if not grid[new[0]][new[1]] or (new != old and new not in neighbors(*old, len(grid))):
                 raise ValueError("Illegal bot move in replay")
-        runs[row["bot"]] = dict(outcome=outcome, steps=steps, history=history)
-    return dict(trial=trial, q=q, grid=grid, start=start, button=button,
-                fire_start=fire_start, ship_seed=int(scenario["ship_seed"]),
-                fire_seed=int(scenario["fire_seed"]), runs=runs)
+        runs[row["bot"]] = {"outcome": outcome, "steps": steps, "history": history}
+    return {"trial": trial, "q": q, "grid": grid, "start": start, "button": button,
+            "fire_start": fire_start, "ship_seed": int(scenario["ship_seed"]),
+            "fire_seed": int(scenario["fire_seed"]), "runs": runs}
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(
+        description="Replay one paired CSV scenario and optionally save its complete history."
+    )
     parser.add_argument("--csv", default="results/exploratory_60.csv")
     parser.add_argument("--trial", type=int, required=True)
     parser.add_argument("--q", type=float, required=True)

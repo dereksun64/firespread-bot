@@ -1,7 +1,5 @@
-"""Edge cases for the ship, the fire, BFS, the bots and the simulator.
-
-Run with: python3 -m unittest discover -s tests -v
-"""
+# edge cases for the ship, the fire, BFS, the bots and the simulator
+# run with: python3 -m unittest discover -s tests -v
 import random
 import sys
 import unittest
@@ -20,7 +18,7 @@ ALL_BOTS = (bot1, bot2, bot3, bot4)
 
 
 def parse(picture):
-    """Turn rows of '.'/'#' into a square grid; letters mark named open cells."""
+    # turn rows of '.'/'#' into a square grid; letters mark named open cells
     rows = [line.strip() for line in picture.strip().splitlines()]
     # The project code assumes a square D x D grid, so pad with walls.
     side = max(len(rows), max(len(row) for row in rows))
@@ -444,7 +442,7 @@ class SimulatorTests(unittest.TestCase):
         for mover in (lambda *a: a[1], bot2):
             history = []
 
-            def recorder(grid, bot, button, fire, q, state, mover=mover):
+            def recorder(grid, bot, button, fire, q, state, mover=mover, history=history):
                 history.append(frozenset(fire))
                 return mover(grid, bot, button, fire, q, state)
 

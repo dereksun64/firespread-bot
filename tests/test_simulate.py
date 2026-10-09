@@ -1,8 +1,8 @@
-"""Run with: python3 -m unittest discover -s tests."""
+# run with: python3 -m unittest discover -s tests
 
-import unittest
 import csv
 import tempfile
+import unittest
 from pathlib import Path
 from unittest.mock import patch
 
@@ -29,7 +29,7 @@ class SimulationTests(unittest.TestCase):
         self.assertIn((1, 0), history[0]["fire_after"])
 
     def test_summary_counts_failures_and_timeouts(self):
-        results = [dict(size=5, q=0.3, bot="bot1", outcome=outcome)
+        results = [{"size": 5, "q": 0.3, "bot": "bot1", "outcome": outcome}
                    for outcome in ("success", "burned", "timeout", "success")]
         row = success_rates(results)[0]
         self.assertEqual(row["success_rate"], 0.5)
@@ -89,7 +89,7 @@ class SimulationTests(unittest.TestCase):
         for _ in range(2):
             history = []
 
-            def stay(grid, bot, button, fire, q, state):
+            def stay(grid, bot, button, fire, q, state, history=history):
                 history.append(frozenset(fire))
                 return bot
 

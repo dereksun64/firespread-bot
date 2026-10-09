@@ -1,7 +1,7 @@
-"""Run one bot against the ship's fire, one turn at a time."""
+# run one bot against the ship's fire, one turn at a time
 
-import random
 import csv
+import random
 from collections import defaultdict
 from pathlib import Path
 
@@ -10,11 +10,9 @@ from ship import generate_ship
 
 
 def run_trial(bot_fn, grid, start, button, fire0, q, seed, max_steps=5000, history=None):
-    """Return (success/burned/timeout, turns elapsed).
-
-    The grid is shared read-only; bot memory and fire are fresh for each trial.
-    A timeout is a simulation cutoff, not proof that escape is impossible.
-    """
+    # return (success/burned/timeout, turns elapsed)
+    # the grid is shared read-only; bot memory and fire are fresh for each trial
+    # a timeout is a simulation cutoff, not proof that escape is impossible
     if not 0 <= q <= 1:
         raise ValueError("q must be between 0 and 1")
     if max_steps < 0:
@@ -31,12 +29,14 @@ def run_trial(bot_fn, grid, start, button, fire0, q, seed, max_steps=5000, histo
         previous = position
         position = bot_fn(grid, position, button, fire, q, state)
         if history is not None:
-            history.append(dict(step=step, previous=previous, position=position,
-                                fire_before=sorted(fire), fire_after=sorted(fire)))
+            history.append({"step": step, "previous": previous, "position": position,
+                            "fire_before": sorted(fire), "fire_after": sorted(fire)})
         if position in fire:
             return "burned", step
         if position == button:
             return "success", step
+        # fire advances only after a non-winning move, matching the assignment's
+        # turn order and allowing a bot to press the button just in time
         fire = spread_fire(grid, fire, q, randomizer, button=button)
         if history is not None:
             history[-1]["fire_after"] = sorted(fire)
@@ -46,11 +46,9 @@ def run_trial(bot_fn, grid, start, button, fire0, q, seed, max_steps=5000, histo
 
 
 def run_experiments(size, q_values, trials, seed=0, max_steps=5000):
-    """Return one result dict per bot, q, and trial, using paired scenarios.
-
-    Each trial uses the same ship, positions, and fire seed across bots and q.
-    Each run still gets fresh bot state and its own fire random generator.
-    """
+    # return one result dict per bot, q, and trial, using paired scenarios
+    # each trial uses the same ship, positions, and fire seed across bots and q
+    # each run still gets fresh bot state and its own fire random generator
     from bots import bot1, bot2, bot3, bot4
 
     q_values = tuple(q_values)
@@ -61,6 +59,8 @@ def run_experiments(size, q_values, trials, seed=0, max_steps=5000):
 
     randomizer, results = random.Random(seed), []
     for trial in range(trials):
+        # reuse this scenario for every q and bot so differences are paired,
+        # rather than being artifacts of different random ships or fires
         ship_seed = randomizer.getrandbits(64)
         fire_seed = randomizer.getrandbits(64)
         grid = generate_ship(size, seed=ship_seed)
@@ -71,27 +71,27 @@ def run_experiments(size, q_values, trials, seed=0, max_steps=5000):
                 outcome, steps = run_trial(
                     bot_fn, grid, start, button, {fire_start}, q, fire_seed, max_steps
                 )
-                results.append(dict(trial=trial, size=size, q=q, bot=bot_fn.__name__,
-                                    outcome=outcome, steps=steps, ship_seed=ship_seed,
-                                    fire_seed=fire_seed, start=start, button=button,
-                                    fire_start=fire_start, rules="fireproof_button_v1",
-                                    max_steps=max_steps))
+                results.append({"trial": trial, "size": size, "q": q, "bot": bot_fn.__name__,
+                                "outcome": outcome, "steps": steps, "ship_seed": ship_seed,
+                                "fire_seed": fire_seed, "start": start, "button": button,
+                                "fire_start": fire_start, "rules": "fireproof_button_v1",
+                                "max_steps": max_steps})
     return results
 
 
 def success_rates(results):
-    """Summarize successes / all trials; timeouts remain in the denominator."""
+    # summarize successes / all trials; timeouts remain in the denominator
     groups = defaultdict(list)
     for result in results:
         groups[(result["size"], result["q"], result["bot"])].append(result["outcome"])
-    return [dict(size=size, q=q, bot=bot, trials=len(outcomes),
-                 successes=outcomes.count("success"), timeouts=outcomes.count("timeout"),
-                 success_rate=outcomes.count("success") / len(outcomes))
+    return [{"size": size, "q": q, "bot": bot, "trials": len(outcomes),
+             "successes": outcomes.count("success"), "timeouts": outcomes.count("timeout"),
+             "success_rate": outcomes.count("success") / len(outcomes)}
             for (size, q, bot), outcomes in sorted(groups.items())]
 
 
 def save_results(results, path):
-    """Save raw trials, including seeds and positions for replay."""
+    # save raw trials, including seeds and positions for replay
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", newline="") as stream:
@@ -101,7 +101,7 @@ def save_results(results, path):
 
 
 def plot_success_rates(results, path):
-    """Write a static graph; separate lines for each bot and grid size."""
+    # write a static graph; separate lines for each bot and grid size
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt

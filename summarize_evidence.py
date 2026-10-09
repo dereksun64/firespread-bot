@@ -1,4 +1,4 @@
-"""Verify and summarize the corrected evidence; run after collect_evidence.py."""
+# verify and summarize the corrected evidence; run after collect_evidence.py
 
 import csv
 import json
@@ -12,6 +12,8 @@ from simulate import save_results, success_rates
 
 
 def read_paired(path, expected_trials):
+    # group rows by q and trial so every comparison is made on the same ship,
+    # positions, and fire seed rather than on unrelated random runs
     with path.open(newline="") as stream:
         rows = list(csv.DictReader(stream))
     groups = defaultdict(dict)
@@ -53,14 +55,17 @@ if __name__ == "__main__":
             b = group[bot]["outcome"] == "success"
             wins += a and not b
             losses += b and not a
+        # McNemar's exact test uses only discordant pairs; ties provide no
+        # evidence that one of the two bots outperformed the other
         n = wins + losses
         p = min(1, 2 * sum(math.comb(n, k) for k in range(min(wins, losses) + 1)) / 2 ** n)
         draws = randomizer.multinomial(300, [wins / 300, losses / 300,
                                            1 - n / 300], size=20000)
         intervals = np.quantile((draws[:, 0] - draws[:, 1]) / 3, [0.025, 0.975])
-        comparisons.append(dict(bot=bot, wins=wins, losses=losses,
-                                difference_pp=(wins - losses) / 3,
-                                bootstrap_ci_pp=intervals.tolist(), exact_p=p))
+        comparisons.append({"bot": bot, "wins": wins, "losses": losses,
+                            "difference_pp": (wins - losses) / 3,
+                            "bootstrap_ci_pp": intervals.tolist(), "exact_p": p})
+    # apply Holm's step-down correction to the three planned comparisons
     adjusted = 0
     for rank, row in enumerate(sorted(comparisons, key=lambda r: r["exact_p"])):
         adjusted = max(adjusted, min(1, (3 - rank) * row["exact_p"]))

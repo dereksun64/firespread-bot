@@ -1,10 +1,11 @@
 import random
 
+# build reproducible connected maze-like ship layouts for the simulator
 # Row/column offsets for the four non-diagonal neighboring cells.
 DIRECTIONS = ((1, 0), (-1, 0), (0, 1), (0, -1))
 
 def neighbors(row, column, size):
-    """Yield every in-bounds up, down, left, and right neighbor."""
+    # yield every in-bounds up, down, left, and right neighbor
     for row_offset, column_offset in DIRECTIONS:
         # Apply one direction offset to the current cell.
         neighbor_row = row + row_offset
@@ -15,7 +16,7 @@ def neighbors(row, column, size):
             yield neighbor_row, neighbor_column
 
 def generate_ship(size, seed=None):
-    """Return a square Boolean grid where True means an open cell."""
+    # return a square Boolean grid where True means an open cell
     # Keep all randomness local so the optional seed gives repeatable ships.
     randomizer = random.Random(seed)
 
@@ -132,7 +133,7 @@ def generate_ship(size, seed=None):
 
 
 def show(grid):
-    """Print open cells as dots and blocked cells as number signs."""
+    # print open cells as dots and blocked cells as number signs
     for row in grid:
         print("".join("·" if cell else "█" for cell in row))
 

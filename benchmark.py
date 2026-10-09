@@ -1,4 +1,4 @@
-"""Time paired trials: python3 benchmark.py --sizes 20 40 60 80."""
+# time paired trials: python3 benchmark.py --sizes 20 40 60 80
 
 import argparse
 import random
@@ -10,18 +10,23 @@ from simulate import run_trial
 
 
 def benchmark(sizes, trials, q_values, seed):
+    # emit CSV so the measurements can be pasted directly into a spreadsheet
     print("size,bot,runs,total_seconds,mean_seconds,max_seconds,timeouts", flush=True)
     for size in sizes:
         randomizer = random.Random(seed)
         timings = {bot.__name__: [] for bot in (bot1, bot2, bot3, bot4)}
         timeouts = dict.fromkeys(timings, 0)
         for _ in range(trials):
+            # each bot receives the same generated scenario for a fair runtime
+            # comparison; only its decision procedure differs
             grid = generate_ship(size, seed=randomizer.getrandbits(64))
             fire_seed = randomizer.getrandbits(64)
             cells = [(r, c) for r, row in enumerate(grid) for c, opened in enumerate(row) if opened]
             start, button, fire_start = randomizer.sample(cells, 3)
             for q in q_values:
                 for bot in (bot1, bot2, bot3, bot4):
+                    # time a complete simulation, including repeated replanning
+                    # and fire updates, rather than an isolated pathfinding call
                     began = perf_counter()
                     outcome, _ = run_trial(bot, grid, start, button, {fire_start}, q, fire_seed)
                     timings[bot.__name__].append(perf_counter() - began)

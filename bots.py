@@ -1,23 +1,22 @@
-"""Project 1 bots.
-
-Every bot has the same signature and answers one question: "where do I step next?"
-
-    next_cell = botN(grid, bot, button, fire, q, state)
-
-    grid    D x D list of bools (True = open), from ship.generate_ship
-    bot     (row, col) the bot is standing on
-    button  (row, col) of the button
-    fire    set of (row, col) cells currently burning
-    q       flammability (only Bot 4 uses it)
-
-The button can never catch fire (confirmed by the TA).
-    state   a dict the CALLER creates once per trial per bot ({}) and passes
-            back in every step. Bots use it as scratch memory (Bot 1 keeps its
-            plan there, Bot 4 caches the grid as a NumPy array).
-
-The return value is the cell to move to. Returning `bot` itself means "stay".
-Bots 1-3 are just bfs.bfs with a different set of forbidden cells.
-"""
+# project 1 bots
+#
+# every bot has the same signature and answers one question: "where do I step next?"
+#
+#     next_cell = botN(grid, bot, button, fire, q, state)
+#
+#     grid    D x D list of bools (True = open), from ship.generate_ship
+#     bot     (row, col) the bot is standing on
+#     button  (row, col) of the button
+#     fire    set of (row, col) cells currently burning
+#     q       flammability (only Bot 4 uses it)
+#
+# the button can never catch fire (confirmed by the TA)
+#     state   a dict the CALLER creates once per trial per bot ({}) and passes
+#             back in every step. Bots use it as scratch memory (Bot 1 keeps its
+#             plan there, Bot 4 caches the grid as a NumPy array)
+#
+# the return value is the cell to move to. Returning `bot` itself means "stay"
+# bots 1-3 are just bfs.bfs with a different set of forbidden cells
 import numpy as np
 
 from bfs import bfs
@@ -27,15 +26,13 @@ _NEAR_ONE = 1 - 1e-12  # probabilities above this are treated as certain fire
 
 
 def _first_step(path, here):
-    """Next cell on a path, or stay put if there is no path / already there."""
+    # next cell on a path, or stay put if there is no path / already there
     return path[1] if path is not None and len(path) > 1 else here
 
 
 def _fire_plus_neighbors(fire, size, button):
-    """The burning cells together with every cell adjacent to one.
-
-    The button is left out: it can never burn, and entering it ends the task.
-    """
+    # the burning cells together with every cell adjacent to one
+    # the button is left out: it can never burn, and entering it ends the task
     danger = set(fire)
     for r, c in fire:
         danger.update(neighbors(r, c, size))
@@ -87,7 +84,7 @@ def bot3(grid, bot, button, fire, q, state):
 #   3. Take only the first step, then re-plan next turn with the new fire.
 # --------------------------------------------------------------------------
 def _forecast(open_mask, fire, q, horizon, ignitable):
-    """Return [P_0, P_1, ..., P_horizon] as D x D arrays."""
+    # return [P_0, P_1, ..., P_horizon] as D x D arrays
     P = np.zeros(open_mask.shape)
     for r, c in fire:
         P[r, c] = 1.0
@@ -102,7 +99,7 @@ def _forecast(open_mask, fire, q, horizon, ignitable):
 
 
 def _step_cost(P, open_mask):
-    """-log(survival) of occupying each cell, inf where it is wall or certain fire."""
+    # -log(survival) of occupying each cell, inf where it is wall or certain fire
     capped = np.minimum(P, _NEAR_ONE)
     cost = -np.log1p(-capped)
     cost[(P >= _NEAR_ONE) | ~open_mask] = np.inf
@@ -162,6 +159,7 @@ def bot4(grid, bot, button, fire, q, state, slack=20):
 # --------------------------------------------------------------------------
 if __name__ == "__main__":
     import random
+
     from ship import generate_ship
     from simulate import run_trial
 
