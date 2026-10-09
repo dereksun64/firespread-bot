@@ -5,14 +5,18 @@
 \pgfplotsset{compat=1.18}
 \usepackage{booktabs}
 
+% start every section after the first on a new page (also flushes pending figures)
+\let\oldsection\section
+\renewcommand{\section}{\ifnum\value{section}>0 \clearpage\fi\oldsection}
+
 \title{This Ship Is on Fire\\\large Project 1: Strategies, Experiments, and Failure Analysis}
-\author{}
-\date{October 2026}
+\author{Derek Sun (dds168), Prashasth Turaga (pnt31)}
+\date{October 9, 2026}
 
 \begin{document}
 \maketitle
 
-\section{The Problem and Our Four Bots}
+\section{The Project (The Problem and the Four Bots)}
 
 The goal is to get the bot to the fire-suppression button on a randomly generated ship before it burns. The ship is a square grid, and the bot can move to an adjacent open cell or stay put. Fire spreads every turn: a cell catches fire with probability $1 - (1-q)^K$, where $K$ is the number of burning neighbors. Following the TA clarification, the button itself can't catch fire, but its neighbors can burn and cut the bot off from it.
 
@@ -25,23 +29,24 @@ Each turn the bot picks a move and makes it. If it walks into fire, it fails. If
   \item \textbf{Bot 4} is our own design, explained next.
 \end{itemize}
 
-\section{Our Bot 4}
+\newpage
+\section{Bot 4 Design}
 
-We noticed that all of the shortest-path bots share a problem: a cell that's safe right now can be on fire by the time the bot gets there. So with Bot 4 we wanted to pick the path with the lowest predicted fire risk at the moment we'd actually be standing in each cell. Unlike Bot 3's wider buffer, this uses $q$, how fire moves through the hallways, and when we'd arrive at each cell.
+All of the shortest-path bots share a problem: a cell that's safe right now can be on fire by the time the bot gets there. So with Bot 4 we wanted to pick the path with the lowest predicted fire risk at the moment we'd actually be standing in each cell. Unlike Bot 3's wider buffer, this uses $q$, how fire moves through the hallways, and when we'd arrive at each cell.
 
-\textbf{Forecasting the fire.} Let $P_t(c)$ be our estimate of the probability that cell $c$ is burning after $t$ more fire updates. Burning cells start at 1 and everything else starts at 0. For a cell that can ignite, we update
+\textbf{Forecasting the fire:} Let $P_t(c)$ be our estimate of the probability that cell $c$ is burning after $t$ more fire updates. Burning cells start at 1 and everything else starts at 0. For a cell that can ignite, we update
 \[
-P_{t+1}(c) = P_t(c) + \bigl(1 - P_t(c)\bigr)\left[1 - \prod_{n \in N(c)} \bigl(1 - q\,P_t(n)\bigr)\right].
+P_{t+1}(c) = P_t(c) + \bigl(1 - P_t(c)\bigr)\left[1 - \prod_{n \in N(c)} \bigl(1 - q\,P_t(n)\bigr)\right]
 \]
 Walls and the button can't ignite. The product estimates the chance that none of the neighbors light the cell, and we treat the neighbors as independent. That isn't exactly true, since nearby fires are correlated, but it's a cheap way to forecast without simulating tons of fires every turn. We only use it to rank routes, not as an exact survival probability.
 
-\textbf{Turning risk into a cost.} If we'd be in cell $c$ after move $t$, the cost of that cell is
+If we'd be in cell $c$ after move $t$, the cost of that cell is
 \[
 w_t(c) = -\log\bigl(1 - P_t(c)\bigr).
 \]
 Maximizing a product of survival probabilities is the same as minimizing a sum of negative logs, so this lets us add up risk along a path. Safe cells cost close to nothing, and cells that are almost certainly burning cost a huge amount (walls and cells with $P_t \ge 1 - 10^{-12}$ get infinite cost). The button costs zero because we win as soon as we reach it. There's no separate weight for distance, so the bot will take a longer route whenever its total risk is lower, even by a tiny amount. When two arrivals tie, we take the earlier one.
 
-\textbf{Searching through time.} First we compute the current shortest path that avoids fire, with length $L$ moves. Our planning horizon is $H = L + 20$, so we have some room to detour without the search blowing up. The 20 is just a number we picked, not something we tuned. Let $C_t(c)$ be the lowest total risk cost for getting to $c$ after $t$ moves. The bot's own cell starts at 0 and everything else at infinity, and each layer is
+\textbf{Searching through time:} First we compute the current shortest path that avoids fire, with length $L$ moves. Our planning horizon is $H = L + 20$, so we have some room to detour without the search blowing up. The 20 is just a number we picked, not something we tuned. Let $C_t(c)$ be the lowest total risk cost for getting to $c$ after $t$ moves. The bot's own cell starts at 0 and everything else at infinity, and each layer is
 \[
 C_t(c) = w_t(c) + \min_{n \in N(c)} C_{t-1}(n).
 \]
@@ -49,15 +54,16 @@ Bot 4 picks the lowest-cost button arrival over moves $1$ through $H$, backtrack
 
 Two special cases: if the fire has already cut the bot off from the button, Bot 4 stays, since fire never goes away. If a safe path exists right now but every forecast route has infinite cost, the forecast is probably just too pessimistic, so we take the first step of the plain shortest path.
 
-\textbf{Efficiency.} We use NumPy shifts to compute the four-neighbor forecast and the best-predecessor step over the whole grid at once, and we cache the Boolean grid between turns. Each decision takes $O(HD^2)$ time and $O(HD^2)$ memory for the stored layers, so the horizon controls both how the bot behaves and how much computation it uses. Early benchmarks showed 80$\times$80 ships were doable but Bot 4 was a lot slower than the others. Those benchmarks were before the fireproof-button fix, so we don't treat them as current timings. For the new experiments we used 60$\times$60 ships.
+\textbf{Efficiency:} We use numpy shifts to compute the four-neighbor forecast and the best-predecessor step over the whole grid at once, and we cache the Boolean grid between turns. Each decision takes $O(HD^2)$ time and $O(HD^2)$ memory for the stored layers, so the horizon controls both how the bot behaves and how much computation it uses. Early benchmarks showed 80$\times$80 ships were doable but Bot 4 was a lot slower than the others. Those benchmarks were before the fireproof-button fix, so we don't treat them as current timings. For the new experiments we used 60$\times$60 ships.
 
+\newpage
 \section{Experiments and Results}
 
-\textbf{Setup.} For the full sweep we generated 100 ships of size 60$\times$60 for each $q \in \{0.0, 0.1, \dots, 1.0\}$. In each scenario we randomly placed the bot, button, and initial fire on three different open cells, then ran all four bots, for 4,400 runs total. All four bots got the same ship, starting positions, and fire seed, so they all saw the same fire. Since bot movement doesn't change how the fire spreads, this makes the comparison fair. We reused the same 100 scenarios across $q$ values.
+\textbf{Setup:} For the full sweep we generated 100 ships of size 60$\times$60 for each $q \in \{0.0, 0.1, \dots, 1.0\}$. In each scenario we randomly placed the bot, button, and initial fire on three different open cells, then ran all four bots, for 4,400 runs total. All four bots got the same ship, starting positions, and fire seed, so they all saw the same fire. Since bot movement doesn't change how the fire spreads, this makes the comparison fair. We reused the same 100 scenarios across $q$ values.
 
 We also ran a focused follow-up at $q = 0.3$ with 200 new scenarios, which together with the 100 from the sweep gives 300 per bot. In total that's 5,200 distinct runs. The sweep used seeds 600--609 and the follow-up used seeds 700--709, and the raw data stores the seeds, positions, and a 5,000-turn cutoff (no run ever hit it). The sweep took 827.3 seconds, and the whole collection took 999.9 seconds.
 
-\textbf{Full-range results.}
+\textbf{Full-range results:}
 
 \begin{center}
 \begin{tabular}{c|cccc}
@@ -150,11 +156,11 @@ Bot 4 & 282/300 & 94.00\% \\
 \end{tabular}
 \end{center}
 
-Bot 4 had the highest raw success rate here, ahead of Bot 3 by only four ships out of 300. That's a small gap, and 300 trials isn't enough for us to say Bot 4 is definitely better than Bots 2 and 3. It's clearly better than Bot 1, which loses a lot more often. We picked $q = 0.3$ from earlier exploration and fixed it before the corrected experiments finished, and we never tuned Bot 4's parameters on these results.
+This is where Bot 4 outperforms the other three bots. It had the highest raw success rate, and since every bot ran on the same 300 ships with the same fire, we can also compare them ship by ship. Bot 4 survived 4 ships that Bot 3 lost and never lost a ship that Bot 3 survived. Against Bot 2 it was 8 ships to 1, and against Bot 1 it was 19 to 1. The gap over Bot 3 is still small, and 300 trials isn't enough for us to say Bot 4 is definitely better than Bots 2 and 3. We picked $q = 0.3$ from earlier exploration and fixed it before the corrected experiments finished, and we never tuned Bot 4's parameters on these results.
 
-\section{Why the Bots Fail}
+\section{Why the Bots fail}
 
-All of these cases use $q = 0.3$ and the fireproof-button rules. Coordinates are zero-based (row, column). We replayed each trial and checked that the saved outcomes and moves were legal. To see whether a failure was avoidable, we also searched every reachable state (including staying) using the fire that actually happened. This gives the optimal path for that specific fire, which no real bot could know in advance.
+All of these cases use $q = 0.3$ and the fireproof-button rules. We replayed each trial and checked that the saved outcomes and moves were legal. To see whether a failure was avoidable, we also searched every reachable state (including staying) using the fire that actually happened. This gives the optimal path for that specific fire, which no bot could know in advance.
 
 \begin{center}
 \begin{tabular}{cllll}
@@ -168,7 +174,7 @@ Trial & Bot 1 & Bot 2 & Bot 3 & Bot 4 \\
 \end{tabular}
 \end{center}
 
-\textbf{Trial 50: the risk-aware detour pays off.} On turn 18, at (43,19), Bots 3 and 4 make different moves even though they see the same fire. Bot 3 goes to (43,20) and Bot 4 goes to (42,19). Bot 4 reaches the button in 79 turns, and the optimal path for that fire is also 79 moves. Bot 3 burns on turn 60.
+\textbf{Trial 50: the risk-aware detour ends up working out for Bot 4.} On turn 18, at (43,19), Bots 3 and 4 make different moves even though they see the same fire. Bot 3 goes to (43,20) and Bot 4 goes to (42,19). Bot 4 reaches the button in 79 turns, and the optimal path for that fire is also 79 moves. Bot 3 burns on turn 60.
 
 \begin{figure}[h]
 \centering
@@ -251,13 +257,13 @@ Trial & Bot 1 & Bot 2 & Bot 3 & Bot 4 \\
 \node[font=\small,text=green!50!black] at (1.5,-0.6) {Bot 3: fails};
 \node[font=\small,text=red!75!black] at (5.4,-0.6) {Bot 4: succeeds};
 \end{tikzpicture}
-\caption{Local paths in Trial 50, $q = 0.3$. Rows 39--46 and columns 17--23 are cropped from the saved grid, and gray squares are walls. The gray segment shows the shared moves 15--17. At S, (43,19), both bots see identical fire. Green solid and red dashed paths show Bot 3's and Bot 4's moves 18--24. The burning cells and button are outside this crop. Bot 3 burns on turn 60 and Bot 4 reaches the button on turn 79.}
+\caption{Local paths in Trial 50, $q = 0.3$. Rows 39--46 and columns 17--23 are cropped from the saved grid, and gray squares are walls. The gray segment shows the shared moves 15--17. At S, (43,19), both bots see identical fire. Green solid and red dashed paths show Bot 3's and Bot 4's moves 18--24. The burning cells and button are outside this portion of the grid. Bot 3 burns on turn 60 and Bot 4 reaches the button on turn 79.}
 \label{fig:trial50}
 \end{figure}
 
 Bot 1 walks into fire at (50,31) on turn 38, even though a 34-move path around the current fire still existed. That one was avoidable. Bots 2 and 3 get cut off from the button by turn 51, so they stay put and eventually burn. The button never burns; the fire just surrounds it.
 
-\textbf{Trial 249: too much detouring loses a winnable game.} Bots 1 and 2 both succeed in 68 turns, so a winning strategy clearly existed. Bot 4 first splits from Bot 1 on turn 23 at (20,15), going to (20,14) instead of (21,15). Bot 3 follows the direct route longer and splits on turn 55. Bot 4 burns on turn 81 after stepping into (44,34), which catches fire that turn. Right before that move, the button was only two moves away. Bot 3 gets cut off and burns on turn 100. The optimal path for this fire is 68 moves.
+\textbf{Trial 249: too much detouring causes Bot 4 to lose a game it could've won.} Bots 1 and 2 both succeed in 68 turns, so a winning strategy clearly existed. Bot 4 first splits from Bot 1 on turn 23 at (20,15), going to (20,14) instead of (21,15). Bot 3 follows the direct route longer and splits on turn 55. Bot 4 burns on turn 81 after stepping into (44,34), which catches fire that turn. Right before that move, the button was only two moves away. Bot 3 gets cut off and burns on turn 100. The optimal path for this fire is 68 moves.
 
 So Bot 4 spent too long chasing a lower-risk route. To test this, we reran Trials 50 and 249 changing only the horizon slack:
 
@@ -278,15 +284,17 @@ A longer horizon helps in one trial and hurts in the other. We kept the default 
 
 \textbf{Trial 0: no way out.} Searching every reachable state with the actual fire finds no escape at all (it runs out of states on turn 266). Even knowing the fire in advance couldn't save the bot here. Bots 2--4 lose their route to the button by turn 39 and burn later, and Bot 1 keeps following its plan into fire.
 
-\section{What Surprised Us}
+\newpage
 
-We expected Bot 4 to help most when the fire spreads fast enough to matter but slowly enough that detours are still useful. The graph matches that: nearly everyone wins at low $q$ and the curves bunch up at high $q$.
+\section{What surprised us}
 
-At first we were worried the bots were basically the same. An early version of our demo had all four bots burn on the same first turn, and a small 10$\times$10 test gave overlapping curves. Controlled layouts and full-path replays showed they do make different decisions: Bot 3 takes buffer-driven detours, and Bot 4 sometimes picks a different move from Bots 2 and 3 with identical fire. Success rates alone can hide those differences, especially when different choices end in the same result.
+We expected Bot 4 to help most when the fire spreads fast enough to matter but slowly enough that detours are still useful. The graph matches that, since nearly every bot wins at low $q$ and the curves bunch up at high $q$.
+
+At first we were worried the bots were basically the same. An early version of our demo had all four bots burn on the same first turn, and a small 10$\times$10 test gave overlapping curves. Controlled layouts and full-path replays showed they do make different decisions: Bot 3 takes buffer-driven detours, and Bot 4 sometimes picks a different move from Bots 2 and 3 with identical fire. If we were to just look at success rates, we wouldn't have seen those differences, especially when different choices end in the same result. 
 
 The TA's clarification that the button can't burn also changed our process. Our first experiments let the button burn, so we separated those out and recollected everything. None of the old numbers are mixed in with the results here.
 
-The biggest surprise was how small Bot 4's edge over Bot 3 is. A more expensive strategy isn't automatically much better. Trial 249 shows the downside, since a low-risk detour can lose a game that the direct route wins, and Trial 50 shows the upside. We think a good bot has to balance risk against urgency instead of assuming more lookahead is always better.
+The biggest surprise was how small Bot 4's edge over Bot 3 is. A more expensive strategy isn't automatically much better. Trial 249 shows the downside, since a low-risk detour can lose a game that the direct route wins, and Trial 50 shows the upside. This shows us that a good bot has to balance risk against urgency, instead of assuming that more lookahead is always better.
 
 \section{Ideal Bot and Computation Time}
 
@@ -297,11 +305,5 @@ A more practical version would simulate a bunch of random fire futures for each 
 In our simulator the fire waits for the bot to finish deciding, so slow computation never directly causes extra spread, and our timings don't show a real-time penalty. In a real system the bot would need a deadline: compute a quick fallback move first, then improve it if there's time. When fire is right next to the bot, a fast move matters more than a perfect plan that arrives late. When the fire is far away, extra computation is worth it.
 
 The hint about guaranteed wins also suggests a way to collect data faster. Fire can only spread one edge per update, so if a route reaches every cell strictly before the earliest possible ignition and then reaches the button, it's safe even under the fastest possible spread. This certifies a specific route without running randomized trials, but it doesn't certify every route a bot might pick. We didn't use it in our experiments.
-
-\section{Limitations and Reproducing Our Results}
-
-We only used one grid size (60$\times$60) and a finite set of seeds. Our $q$ spacing of 0.1 could miss narrow ranges where the bots behave differently. We didn't tune the horizon slack, and we didn't attempt the bonus.
-
-To run the tests: \texttt{python3 -m unittest discover -s tests -v}. To reproduce the data: \texttt{python3 -u collect\_evidence.py}, then \texttt{python3 summarize\_evidence.py} to check the paired scenarios and recompute the tables. Methods and raw data are in \texttt{results/fireproof/}, along with the replays for Trials 50, 249, and 0 and the horizon results in \texttt{horizon\_diagnostics.csv}.
 
 \end{document}
