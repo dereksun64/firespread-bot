@@ -82,7 +82,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Replay one paired CSV scenario and optionally save its complete history."
     )
-    parser.add_argument("--csv", default="results/exploratory_60.csv")
+    parser.add_argument("--csv", default="results/fireproof/sweep.csv")
     parser.add_argument("--trial", type=int, required=True)
     parser.add_argument("--q", type=float, required=True)
     parser.add_argument("--output", help="Save full fire and position histories as JSON")

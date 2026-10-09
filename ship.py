@@ -133,7 +133,7 @@ def generate_ship(size, seed=None):
 
 
 def show(grid):
-    # print open cells as dots and blocked cells as number signs
+    # print open cells as middle dots and blocked cells as solid blocks
     for row in grid:
         print("".join("·" if cell else "█" for cell in row))
 
