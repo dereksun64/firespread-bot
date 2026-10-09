@@ -1,11 +1,12 @@
 \documentclass[11pt]{article}
 \usepackage[margin=1in]{geometry}
 \usepackage{amsmath}
-\usepackage{graphicx}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 \usepackage{booktabs}
 
 \title{This Ship Is on Fire\\\large Project 1: Strategies, Experiments, and Failure Analysis}
-\author{Derek Sun, Prashasth Turaga}
+\author{}
 \date{October 2026}
 
 \begin{document}
@@ -38,7 +39,7 @@ Walls and the button can't ignite. The product estimates the chance that none of
 \[
 w_t(c) = -\log\bigl(1 - P_t(c)\bigr).
 \]
-Maximizing a product of survival probabilities is the same as minimizing a sum of negative logs, so this lets us add up risk along a path. Safe cells cost close to nothing, and cells that are almost certainly burning cost a huge amount (walls and cells with $P_t \ge 1 - 10^{-12}$ get infinite cost). The button costs zero because we win as soon as we reach it. A longer route can still win if it's much safer, and we don't need a separate weight for distance. When two arrivals tie, we take the earlier one.
+Maximizing a product of survival probabilities is the same as minimizing a sum of negative logs, so this lets us add up risk along a path. Safe cells cost close to nothing, and cells that are almost certainly burning cost a huge amount (walls and cells with $P_t \ge 1 - 10^{-12}$ get infinite cost). The button costs zero because we win as soon as we reach it. There's no separate weight for distance, so the bot will take a longer route whenever its total risk is lower, even by a tiny amount. When two arrivals tie, we take the earlier one.
 
 \textbf{Searching through time.} First we compute the current shortest path that avoids fire, with length $L$ moves. Our planning horizon is $H = L + 20$, so we have some room to detour without the search blowing up. The 20 is just a number we picked, not something we tuned. Let $C_t(c)$ be the lowest total risk cost for getting to $c$ after $t$ moves. The bot's own cell starts at 0 and everything else at infinity, and each layer is
 \[
@@ -80,16 +81,56 @@ $q$ & Bot 1 & Bot 2 & Bot 3 & Bot 4 \\
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.8\textwidth]{fig_success_vs_q.pdf}
+\begin{tikzpicture}
+\begin{axis}[
+width=0.97\linewidth,height=0.58\linewidth,
+xmin=0,xmax=1,ymin=0,ymax=105,
+xtick={0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1},
+ytick={0,20,40,60,80,100},
+xlabel={Flammability \(q\)},ylabel={Success rate (\%)},
+grid=major,grid style={gray!20},
+legend pos=south west,legend style={font=\small,fill=white,draw=gray!40},
+tick label style={font=\small},label style={font=\small}
+]
+\addplot[blue!75!black,thick,mark=*] coordinates {(0,100)(0.1,96)(0.2,91)(0.3,89)(0.4,82)(0.5,79)(0.6,76)(0.7,69)(0.8,66)(0.9,62)(1,56)};
+\addlegendentry{Bot 1}
+\addplot[orange!85!black,thick,dashed,mark=square*] coordinates {(0,100)(0.1,99)(0.2,96)(0.3,94)(0.4,86)(0.5,81)(0.6,77)(0.7,69)(0.8,66)(0.9,63)(1,56)};
+\addlegendentry{Bot 2}
+\addplot[green!50!black,thick,densely dotted,mark=triangle*] coordinates {(0,100)(0.1,99)(0.2,97)(0.3,95)(0.4,86)(0.5,81)(0.6,77)(0.7,69)(0.8,66)(0.9,63)(1,56)};
+\addlegendentry{Bot 3}
+\addplot[red!75!black,thick,dashdotted,mark=diamond*] coordinates {(0,100)(0.1,99)(0.2,99)(0.3,96)(0.4,88)(0.5,82)(0.6,78)(0.7,71)(0.8,68)(0.9,64)(1,57)};
+\addlegendentry{Bot 4}
+\end{axis}
+\end{tikzpicture}
 \caption{Success rate versus flammability on 60$\times$60 ships with a fireproof button. Each point uses 100 scenarios, and all bots share the same initial conditions and fire. The separate $q = 0.3$ follow-up uses 300 scenarios and is reported in the focused table.}
 \label{fig:sweep}
 \end{figure}
 
-At $q = 0$ every bot wins. At low $q$, most routes finish before the fire matters. At $q = 0.2$--$0.4$, Bot 4 is on top in Figure~\ref{fig:sweep}. At high $q$ the curves squeeze together, which makes sense: the fire spreads so fast that there's no time for clever detours, and it mostly comes down to who started closer to the button. At $q = 1$, Bots 1--3 win 56 times and Bot 4 wins 57, which is just one scenario.
+At $q = 0$ every bot wins. At low $q$, most routes finish before the fire matters. At $q = 0.2$--$0.4$, Bot 4 is on top in Figure~\ref{fig:sweep}. At high $q$ the curves squeeze together, which makes sense: the fire spreads so fast that there's no time for clever detours, and it mostly comes down to whether the bot happened to start close to the button. At $q = 1$, Bots 1--3 win 56 times and Bot 4 wins 57, which is just one scenario.
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.8\textwidth]{fig_success_zoom.pdf}
+\begin{tikzpicture}
+\begin{axis}[
+width=0.97\linewidth,height=0.58\linewidth,
+xmin=0.1,xmax=0.5,ymin=75,ymax=101,
+xtick={0.1,0.2,0.3,0.4,0.5},
+ytick={75,80,85,90,95,100},
+xlabel={Flammability \(q\)},ylabel={Success rate (\%)},
+grid=major,grid style={gray!20},
+legend pos=south west,legend style={font=\small,fill=white,draw=gray!40},
+tick label style={font=\small},label style={font=\small}
+]
+\addplot[blue!75!black,thick,mark=*] coordinates {(0.1,96)(0.2,91)(0.3,89)(0.4,82)(0.5,79)};
+\addlegendentry{Bot 1}
+\addplot[orange!85!black,thick,dashed,mark=square*] coordinates {(0.1,99)(0.2,96)(0.3,94)(0.4,86)(0.5,81)};
+\addlegendentry{Bot 2}
+\addplot[green!50!black,thick,densely dotted,mark=triangle*] coordinates {(0.1,99)(0.2,97)(0.3,95)(0.4,86)(0.5,81)};
+\addlegendentry{Bot 3}
+\addplot[red!75!black,thick,dashdotted,mark=diamond*] coordinates {(0.1,99)(0.2,99)(0.3,96)(0.4,88)(0.5,82)};
+\addlegendentry{Bot 4}
+\end{axis}
+\end{tikzpicture}
 \caption{Zoom of Figure~\ref{fig:sweep} over $q = 0.1$--$0.5$, using the same 100 scenarios per point. The vertical axis is cut off at 75--101\% to show the small differences.}
 \label{fig:zoom}
 \end{figure}
@@ -131,7 +172,85 @@ Trial & Bot 1 & Bot 2 & Bot 3 & Bot 4 \\
 
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.6\textwidth]{fig_trial50.pdf}
+\begin{tikzpicture}[x=0.9cm,y=0.9cm]
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (0,7) rectangle (1,8);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (1,7) rectangle (2,8);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (2,7) rectangle (3,8);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (3,7) rectangle (4,8);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (4,7) rectangle (5,8);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (5,7) rectangle (6,8);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (6,7) rectangle (7,8);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (0,6) rectangle (1,7);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (1,6) rectangle (2,7);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (2,6) rectangle (3,7);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (3,6) rectangle (4,7);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (4,6) rectangle (5,7);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (5,6) rectangle (6,7);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (6,6) rectangle (7,7);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (0,5) rectangle (1,6);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (1,5) rectangle (2,6);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (2,5) rectangle (3,6);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (3,5) rectangle (4,6);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (4,5) rectangle (5,6);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (5,5) rectangle (6,6);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (6,5) rectangle (7,6);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (0,4) rectangle (1,5);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (1,4) rectangle (2,5);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (2,4) rectangle (3,5);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (3,4) rectangle (4,5);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (4,4) rectangle (5,5);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (5,4) rectangle (6,5);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (6,4) rectangle (7,5);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (0,3) rectangle (1,4);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (1,3) rectangle (2,4);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (2,3) rectangle (3,4);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (3,3) rectangle (4,4);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (4,3) rectangle (5,4);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (5,3) rectangle (6,4);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (6,3) rectangle (7,4);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (0,2) rectangle (1,3);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (1,2) rectangle (2,3);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (2,2) rectangle (3,3);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (3,2) rectangle (4,3);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (4,2) rectangle (5,3);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (5,2) rectangle (6,3);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (6,2) rectangle (7,3);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (0,1) rectangle (1,2);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (1,1) rectangle (2,2);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (2,1) rectangle (3,2);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (3,1) rectangle (4,2);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (4,1) rectangle (5,2);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (5,1) rectangle (6,2);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (6,1) rectangle (7,2);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (0,0) rectangle (1,1);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (1,0) rectangle (2,1);
+\filldraw[fill=gray!65,draw=gray!45,line width=0.25pt] (2,0) rectangle (3,1);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (3,0) rectangle (4,1);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (4,0) rectangle (5,1);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (5,0) rectangle (6,1);
+\filldraw[fill=white,draw=gray!45,line width=0.25pt] (6,0) rectangle (7,1);
+\node[font=\scriptsize] at (0.5,8.35) {17};
+\node[font=\scriptsize] at (1.5,8.35) {18};
+\node[font=\scriptsize] at (2.5,8.35) {19};
+\node[font=\scriptsize] at (3.5,8.35) {20};
+\node[font=\scriptsize] at (4.5,8.35) {21};
+\node[font=\scriptsize] at (5.5,8.35) {22};
+\node[font=\scriptsize] at (6.5,8.35) {23};
+\node[font=\scriptsize,anchor=east] at (-0.2,7.5) {39};
+\node[font=\scriptsize,anchor=east] at (-0.2,6.5) {40};
+\node[font=\scriptsize,anchor=east] at (-0.2,5.5) {41};
+\node[font=\scriptsize,anchor=east] at (-0.2,4.5) {42};
+\node[font=\scriptsize,anchor=east] at (-0.2,3.5) {43};
+\node[font=\scriptsize,anchor=east] at (-0.2,2.5) {44};
+\node[font=\scriptsize,anchor=east] at (-0.2,1.5) {45};
+\node[font=\scriptsize,anchor=east] at (-0.2,0.5) {46};
+\draw[gray!80!black,thick,->,>=stealth] (0.5,3.5) -- (1.5,3.5) -- (2.5,3.5);
+\draw[green!50!black,very thick,solid,->,>=stealth] (2.5,3.5) -- (3.5,3.5) -- (3.5,2.5) -- (3.5,1.5) -- (3.5,0.5) -- (4.5,0.5) -- (5.5,0.5) -- (6.5,0.5);
+\draw[red!75!black,very thick,dashed,->,>=stealth] (2.5,3.5) -- (2.5,4.5) -- (2.5,5.5) -- (2.5,6.5) -- (2.5,7.5) -- (3.5,7.5) -- (4.5,7.5) -- (5.5,7.5);
+\node[circle,fill=black,text=white,inner sep=1.5pt,font=\scriptsize] at (2.5,3.5) {S};
+\node[font=\small,text=green!50!black] at (1.5,-0.6) {Bot 3: fails};
+\node[font=\small,text=red!75!black] at (5.4,-0.6) {Bot 4: succeeds};
+\end{tikzpicture}
 \caption{Local paths in Trial 50, $q = 0.3$. Rows 39--46 and columns 17--23 are cropped from the saved grid, and gray squares are walls. The gray segment shows the shared moves 15--17. At S, (43,19), both bots see identical fire. Green solid and red dashed paths show Bot 3's and Bot 4's moves 18--24. The burning cells and button are outside this crop. Bot 3 burns on turn 60 and Bot 4 reaches the button on turn 79.}
 \label{fig:trial50}
 \end{figure}
@@ -163,7 +282,7 @@ A longer horizon helps in one trial and hurts in the other. We kept the default 
 
 We expected Bot 4 to help most when the fire spreads fast enough to matter but slowly enough that detours are still useful. The graph matches that: nearly everyone wins at low $q$ and the curves bunch up at high $q$.
 
-At first we were worried the bots were basically the same. A tiny demo had all four bots burn on the same first turn, and a small 10$\times$10 test gave overlapping curves. Controlled layouts and full-path replays showed they do make different decisions: Bot 3 takes buffer-driven detours, and Bot 4 sometimes picks a different move from Bots 2 and 3 with identical fire. Success rates alone can hide those differences, especially when different choices end in the same result.
+At first we were worried the bots were basically the same. An early version of our demo had all four bots burn on the same first turn, and a small 10$\times$10 test gave overlapping curves. Controlled layouts and full-path replays showed they do make different decisions: Bot 3 takes buffer-driven detours, and Bot 4 sometimes picks a different move from Bots 2 and 3 with identical fire. Success rates alone can hide those differences, especially when different choices end in the same result.
 
 The TA's clarification that the button can't burn also changed our process. Our first experiments let the button burn, so we separated those out and recollected everything. None of the old numbers are mixed in with the results here.
 
