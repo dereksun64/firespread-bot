@@ -27,59 +27,59 @@ def generate_ship(size, seed=None):
     open_neighbor_count = [[0] * size for _ in range(size)]
 
     # Keep blocked cells with exactly one open neighbor ready to be opened.
-    frontier = []
+    fringe = []
 
-    # Map each frontier cell to its list index for fast removal.
-    frontier_index = {}
+    # Map each fringe cell to its list index for fast removal.
+    fringe_index = {}
 
-    def add_to_frontier(cell):
+    def add_to_fringe(cell):
         # Record the cell's position before adding it to the end of the list.
-        frontier_index[cell] = len(frontier)
-        frontier.append(cell)
+        fringe_index[cell] = len(fringe)
+        fringe.append(cell)
 
-    def remove_from_frontier(cell):
+    def remove_from_fringe(cell):
         # Find and forget the index of the cell being removed.
-        index = frontier_index.pop(cell)
+        index = fringe_index.pop(cell)
 
         # Remove the final item, then use it to fill any gap in the list.
-        last_cell = frontier.pop()
-        if index < len(frontier):
-            frontier[index] = last_cell
-            frontier_index[last_cell] = index
+        last_cell = fringe.pop()
+        if index < len(fringe):
+            fringe[index] = last_cell
+            fringe_index[last_cell] = index
 
     def open_cell(row, column):
         # Mark the selected cell as part of the ship.
         open_cells[row][column] = True
 
-        # It cannot remain a frontier cell now that it is open.
-        if (row, column) in frontier_index:
-            remove_from_frontier((row, column))
+        # It cannot remain a fringe cell now that it is open.
+        if (row, column) in fringe_index:
+            remove_from_fringe((row, column))
 
         # Update the open-neighbor count for every cell next to it.
         for neighbor_row, neighbor_column in neighbors(row, column, size):
             open_neighbor_count[neighbor_row][neighbor_column] += 1
 
-            # Only blocked cells can join or leave the frontier.
+            # Only blocked cells can join or leave the fringe.
             if not open_cells[neighbor_row][neighbor_column]:
                 neighbor = (neighbor_row, neighbor_column)
 
                 # One open neighbor makes this cell eligible for maze growth.
                 if open_neighbor_count[neighbor_row][neighbor_column] == 1:
-                    add_to_frontier(neighbor)
+                    add_to_fringe(neighbor)
 
                 # Two open neighbors would create a loop, so remove it.
                 elif (
                     open_neighbor_count[neighbor_row][neighbor_column] == 2
-                    and neighbor in frontier_index
+                    and neighbor in fringe_index
                 ):
-                    remove_from_frontier(neighbor)
+                    remove_from_fringe(neighbor)
 
     # Start from one random interior cell, leaving the initial border untouched.
     open_cell(randomizer.randrange(1, size - 1), randomizer.randrange(1, size - 1))
 
     # Repeatedly open a random eligible cell to grow one connected maze.
-    while frontier:
-        open_cell(*randomizer.choice(frontier))
+    while fringe:
+        open_cell(*randomizer.choice(fringe))
 
     def is_dead_end(row, column):
         # A dead end is an open cell with only one open neighbor.

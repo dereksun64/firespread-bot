@@ -91,8 +91,13 @@ def _forecast(open_mask, fire, q, horizon, ignitable):
     layers = [P]
     for _ in range(horizon):
         keep = np.pad(1 - q * P, 1, constant_values=1.0)  # P(neighbor fails to ignite me)
-        none_ignite = (keep[:-2, 1:-1] * keep[2:, 1:-1]
-                       * keep[1:-1, :-2] * keep[1:-1, 2:])
+        # keep has a border of 1s around the grid, so the four slices below are the
+        # whole grid shifted by one cell. At position (r, c) they give the value of
+        # the neighbor above, below, left, and right of (r, c). Multiplying them is
+        # the chance that NONE of the four neighbors lights this cell. The border
+        # of 1s means "a neighbor off the edge of the ship never lights anything".
+        none_ignite = (keep[:-2, 1:-1] * keep[2:, 1:-1]       # above, below
+                       * keep[1:-1, :-2] * keep[1:-1, 2:])    # left, right
         P = P + (1 - P) * (1 - none_ignite) * ignitable
         layers.append(P)
     return layers
@@ -131,10 +136,15 @@ def bot4(grid, bot, button, fire, q, state, slack=20):
     costs = []
     for t in range(1, horizon + 1):
         step = _step_cost(P[t], open_mask)  # the button's cost is 0: it never burns
+        # same shifting trick as in _forecast: pad the grid with a border, then the
+        # four slices line up each cell with its up/down/left/right neighbor.
+        # The border is inf so a path can't "come from" off the edge of the ship.
         padded = np.pad(cost, 1, constant_values=np.inf)
+        # best_prev[r, c] = cheapest cost of standing on any neighbor of (r, c)
+        # one move ago, i.e. the cheapest place we could have stepped into (r, c) from
         best_prev = np.minimum(
-            np.minimum(padded[:-2, 1:-1], padded[2:, 1:-1]),
-            np.minimum(padded[1:-1, :-2], padded[1:-1, 2:]),
+            np.minimum(padded[:-2, 1:-1], padded[2:, 1:-1]),    # above, below
+            np.minimum(padded[1:-1, :-2], padded[1:-1, 2:]),    # left, right
         )
         cost = best_prev + step
         costs.append(cost)
