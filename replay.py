@@ -34,8 +34,6 @@ def hindsight_path(grid, start, button, fire_start, q, seed, max_steps=5000):
             return path[::-1]
         # advance the same seeded fire process used by the saved simulation
         fire = spread_fire(grid, fire, q, randomizer, button=button)
-        if button in fire:
-            return None  # The button stays burning; no later success is possible.
         surviving = {cell: parent for cell, parent in candidates.items() if cell not in fire}
         if not surviving:
             return None
@@ -82,7 +80,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Replay one paired CSV scenario and optionally save its complete history."
     )
-    parser.add_argument("--csv", default="results/fireproof/sweep.csv")
+    parser.add_argument("--csv", default="results/fireproof/focused_q03.csv")
     parser.add_argument("--trial", type=int, required=True)
     parser.add_argument("--q", type=float, required=True)
     parser.add_argument("--output", help="Save full fire and position histories as JSON")

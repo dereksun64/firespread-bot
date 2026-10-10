@@ -14,7 +14,7 @@
 
 \section{The Problem and the Four Bots}
 
-The goal is to get the bot to the fire-suppression button on a randomly generated ship before it burns. The ship is a square grid, and the bot can move to an adjacent open cell or stay put. Fire spreads every turn: a cell catches fire with probability $1 - (1-q)^K$, where $K$ is the number of burning neighbors. Following the TA clarification, the button itself can't catch fire, but its neighbors can burn and cut the bot off from it.
+The goal is to get the bot to the fire-suppression button on a randomly generated ship before it burns. The ship is a square grid, and the bot can move to an adjacent open cell or stay put. Fire spreads every turn: a cell catches fire with probability $1 - (1-q)^K$, where $K$ is the number of burning neighbors. The TA told us the button itself can't catch fire, but its neighbors can burn and cut the bot off from it.
 
 Each turn the bot picks a move and makes it. If it walks into fire, it fails. If it reaches the button, it wins right away, so the last step doesn't need to survive another fire update. Otherwise the fire spreads, and the bot fails if its cell ignites.
 
@@ -49,7 +49,7 @@ Bot 4 picks the lowest-cost button arrival over moves $1$ through $H$, backtrack
 
 Two special cases: if the fire has already cut the bot off from the button, Bot 4 stays, since fire never goes away. If a safe path exists right now but every forecast route has infinite cost, the forecast is probably just too pessimistic, so we take the first step of the plain shortest path.
 
-\textbf{Efficiency:} We use numpy shifts to compute the four-neighbor forecast and the best-predecessor step over the whole grid at once, and we cache the Boolean grid between turns. Each decision takes $O(HD^2)$ time and $O(HD^2)$ memory for the stored layers, so the horizon controls both how the bot behaves and how much computation it uses. Early benchmarks showed 80$\times$80 ships were doable but Bot 4 was a lot slower than the others. Those benchmarks were before the fireproof-button fix, so we don't treat them as current timings. For the new experiments we used 60$\times$60 ships.
+\textbf{Efficiency:} We use numpy shifts to compute the four-neighbor forecast and the best-predecessor step over the whole grid at once, and we cache the Boolean grid between turns. Each decision takes $O(HD^2)$ time and $O(HD^2)$ memory for the stored layers, so the horizon controls both how the bot behaves and how much computation it uses. In a current benchmark of 15 complete trials per bot, Bots 1--4 averaged 0.102, 0.114, 0.117, and 0.219 seconds per trial on 60$\times$60 ships. Bot 4 averaged 0.900 seconds on 80$\times$80 ships, so that size was manageable but much slower. We used 60$\times$60 ships for the experiments to collect enough trials in a reasonable amount of time.
 
 \section{Experiments and Results}
 
@@ -57,6 +57,7 @@ Two special cases: if the fire has already cut the bot off from the button, Bot 
 
 We also ran a focused follow-up at $q = 0.3$ with 200 new scenarios, which together with the 100 from the sweep gives 300 per bot. In total that's 5,200 distinct runs. The raw data stores the seeds, positions, and a 5,000-turn cutoff, which no run reached. The whole collection took about 17 minutes.
 
+\begin{samepage}
 \textbf{Full-range results:}
 
 \begin{center}
@@ -78,6 +79,7 @@ $q$ & Bot 1 & Bot 2 & Bot 3 & Bot 4 \\
 \bottomrule
 \end{tabular}
 \end{center}
+\end{samepage}
 
 \begin{figure}[h]
 \centering
@@ -135,6 +137,7 @@ tick label style={font=\small},label style={font=\small}
 \label{fig:zoom}
 \end{figure}
 
+\begin{samepage}
 \textbf{Focused comparison at $q = 0.3$.}
 
 \begin{center}
@@ -149,8 +152,9 @@ Bot 4 & 282/300 & 94.00\% \\
 \bottomrule
 \end{tabular}
 \end{center}
+\end{samepage}
 
-This is where Bot 4 outperforms the other three bots. It had the highest raw success rate, and since every bot ran on the same 300 ships with the same fire, we can also compare them ship by ship. Bot 4 survived 4 ships that Bot 3 lost and never lost a ship that Bot 3 survived. Against Bot 2 it was 8 ships to 1, and against Bot 1 it was 19 to 1. The gap over Bot 3 is still small, and 300 trials isn't enough for us to say Bot 4 is definitely better than Bots 2 and 3. We picked $q = 0.3$ from earlier exploration and fixed it before the corrected experiments finished, and we never tuned Bot 4's parameters on these results.
+This is where Bot 4 outperforms the other three bots. It had the highest raw success rate, and since every bot ran on the same 300 ships with the same fire, we can also compare them ship by ship. Bot 4 survived 4 ships that Bot 3 lost and never lost a ship that Bot 3 survived. Against Bot 2 it was 8 ships to 1, and against Bot 1 it was 19 to 1. The gap over Bot 3 is still small, and 300 trials isn't enough for us to say Bot 4 is definitely better than Bots 2 and 3. We chose $q = 0.3$ before running these experiments, and we didn't adjust Bot 4 based on the results.
 
 \section{Why the Bots fail}
 
@@ -296,6 +300,6 @@ A more practical version would simulate a bunch of random fire futures for each 
 
 In our simulator the fire waits for the bot to finish deciding, so slow computation never directly causes extra spread, and our timings don't show a real-time penalty. In a real system the bot would need a deadline: compute a quick fallback move first, then improve it if there's time. When fire is right next to the bot, a fast move matters more than a perfect plan that arrives late. When the fire is far away, extra computation is worth it.
 
-The hint about guaranteed wins also suggests a way to collect data faster. Fire can only spread one edge per update, so if a route reaches every cell strictly before the earliest possible ignition and then reaches the button, it's safe even under the fastest possible spread. This certifies a specific route without running randomized trials, but it doesn't certify every route a bot might pick. We didn't use it in our experiments.
+The hint about guaranteed wins also suggests a way to collect data faster. Fire can only spread one edge per update, so if a route reaches every cell strictly before the earliest possible ignition and then reaches the button, it's safe even under the fastest possible spread. This certifies a specific route without running randomized trials, but it doesn't certify every route a bot might pick.
 
 \end{document}
